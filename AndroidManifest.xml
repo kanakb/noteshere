@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobisocial.noteshere"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="17" />
+
+    <permission android:name="android.permission.ACCESS_FINE_LOCATION" >
+    </permission>
+
+    <application
+        android:name="mobisocial.noteshere.App"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name="mobisocial.noteshere.NotesActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="mobisocial.noteshere.SettingsActivity"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName="mobisocial.noteshere.NotesActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="mobisocial.noteshere.NotesActivity" />
+        </activity>
+        <activity
+            android:name="mobisocial.noteshere.NewNoteActivity"
+            android:label="@string/title_activity_new_note"
+            android:parentActivityName="mobisocial.noteshere.NotesActivity" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="musubi.intent.category.MENU" />
+                <category android:name="musubi.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="mobisocial.noteshere.NotesActivity" />
+        </activity>
+    </application>
+
+</manifest>

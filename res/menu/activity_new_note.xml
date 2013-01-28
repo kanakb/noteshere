@@ -1,0 +1,12 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menu_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/menu_settings"/>
+    <item android:id="@+id/share" android:title="@string/menu_share" android:icon="@android:drawable/ic_menu_share" android:orderInCategory="100" android:showAsAction="ifRoom"></item>
+    <item android:id="@+id/attachment" android:title="@string/attach_image" android:checked="false" android:showAsAction="always" android:checkable="true" android:icon="@android:drawable/ic_menu_gallery" android:orderInCategory="99"></item>
+    <item android:id="@+id/save" android:orderInCategory="101" android:showAsAction="always" android:title="@string/save" android:icon="@android:drawable/ic_menu_save"></item>
+
+</menu>
