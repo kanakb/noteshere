@@ -12,5 +12,8 @@
     <string name="attach_image">Attach an Image</string>
     <string name="save">Save</string>
     <string name="write_note">Write a note…</string>
+    <string name="from_camera">Camera</string>
+    <string name="from_gallery">Gallery</string>
+    <string name="add_picture">Add a Picture</string>
 
 </resources>

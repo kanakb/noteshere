@@ -37,7 +37,8 @@
         <activity
             android:name="mobisocial.noteshere.NewNoteActivity"
             android:label="@string/title_activity_new_note"
-            android:parentActivityName="mobisocial.noteshere.NotesActivity" >
+            android:parentActivityName="mobisocial.noteshere.NotesActivity"
+            android:permission="mobisocial.musubi.permission.C2D_MESSAGE" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="musubi.intent.category.MENU" />
