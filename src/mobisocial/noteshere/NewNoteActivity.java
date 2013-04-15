@@ -3,8 +3,10 @@ package mobisocial.noteshere;
 import java.io.File;
 import java.util.Random;
 
-import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.noteshere.location.LocationHelper;
+import mobisocial.noteshere.location.LocationHelper.LocationResult;
 
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,16 +20,15 @@ import android.support.v4.app.NavUtils;
 public class NewNoteActivity extends Activity {
     public static final String TAG = "NewNoteActivity";
     
-    private static final String ACTION_CREATE_FEED = "musubi.intent.action.CREATE_FEED";
-    
     private static final int GALLERY_REQUEST_CODE = 1;
     private static final int CAMERA_REQUEST_CODE = 2;
-    private static final int REQUEST_CREATE_FEED = 3;
     
     private String mFilename;
     private boolean mMusubiInstalled;
+    
+    private LocationHelper mLocHelper;
     @SuppressWarnings("unused")
-    private Musubi mMusubi;
+    private Location mLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,10 +45,15 @@ public class NewNoteActivity extends Activity {
         Random random = new Random();
         mFilename = "notes/" + random.nextLong() + ".jpg";
         
-        mMusubiInstalled = Musubi.isMusubiInstalled(this);
-        if (mMusubiInstalled) {
-            mMusubi = Musubi.getInstance(this);
-        }
+        // TODO: this should be a shared instance
+        mLocHelper = new LocationHelper(this);
+        mLocation = mLocHelper.requestLocation(new LocationResult() {
+            @Override
+            public void onLocation(Location location) {
+                // TODO: save the location
+                mLocation = location;
+            }
+        });
     }
 
     @Override
@@ -88,11 +94,6 @@ public class NewNoteActivity extends Activity {
             galleryIntent.setAction(Intent.ACTION_GET_CONTENT);
             startActivityForResult(
                     Intent.createChooser(galleryIntent, null), GALLERY_REQUEST_CODE);
-            return true;
-        case R.id.share:
-            // Need to launch Musubi to start a new feed
-            Intent createFeed = new Intent(ACTION_CREATE_FEED);
-            startActivityForResult(createFeed, REQUEST_CREATE_FEED);
             return true;
         case R.id.save:
             // Need to collect all relevant data and save it in the database

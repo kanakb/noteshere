@@ -1,12 +1,32 @@
 package mobisocial.noteshere;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import mobisocial.noteshere.R;
+import mobisocial.socialkit.musubi.DbFeed;
+import mobisocial.socialkit.musubi.DbIdentity;
+import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.socialkit.obj.MemObj;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -16,8 +36,23 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 public class NotesActivity extends FragmentActivity {
+    private static final String TAG = "NotesActivity";
     
     public static final String FROM_HOME = "from_home";
+
+    private static final String ACTION_CREATE_FEED = "musubi.intent.action.CREATE_FEED";
+    private static final String ACTION_EDIT_FEED = "musubi.intent.action.EDIT_FEED";
+    
+    private static final int REQUEST_CREATE_FEED = 1;
+    private static final int REQUEST_EDIT_FEED = 2;
+    
+    private static final String ADD_TITLE = "member_header";
+    private static final String ADD_HEADER = "Following";
+    
+    private static final String PREFS_NAME = "noteshere_prefs";
+    private static final String PREF_FEED_URI = "feed_uri";
+    
+    private Musubi mMusubi;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -48,6 +83,9 @@ public class NotesActivity extends FragmentActivity {
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
+        if (Musubi.isMusubiInstalled(this)) {
+            mMusubi = Musubi.getInstance(this);
+        }
     }
 
     @Override
@@ -69,6 +107,34 @@ public class NotesActivity extends FragmentActivity {
         case R.id.menu_settings:
             Intent settingsIntent = new Intent(this, SettingsActivity.class);
             NotesActivity.this.startActivity(settingsIntent);
+            return true;
+        case R.id.share:
+            if (mMusubi == null) {
+                // get people to the market to install Musubi
+                Log.d(TAG, "Musubi not installed");
+                new InstallMusubiDialogFragment().show(getSupportFragmentManager(), null);
+                return super.onOptionsItemSelected(item);
+            }
+            SharedPreferences p = getSharedPreferences(PREFS_NAME, 0);
+            String feedEntry = p.getString(PREF_FEED_URI, null);
+            Uri feedUri = (feedEntry != null) ? Uri.parse(feedEntry) : null;
+            Log.d(TAG, "trying to add followers ");
+            String action = ACTION_CREATE_FEED;
+            int request = REQUEST_CREATE_FEED;
+            DbFeed feed = null;
+            if (feedUri != null) {
+                feed = mMusubi.getFeed(feedUri);
+                if (feed != null) {
+                    action = ACTION_EDIT_FEED;
+                    request = REQUEST_EDIT_FEED;
+                }
+            }
+            Intent intent = new Intent(action);
+            if (feed != null) {
+                intent.setData(feedUri);
+                intent.putExtra(ADD_TITLE, ADD_HEADER);
+            }
+            startActivityForResult(intent, request);
             return true;
         default:
             return super.onContextItemSelected(item);
@@ -112,6 +178,111 @@ public class NotesActivity extends FragmentActivity {
                 return getString(R.string.title_section2).toUpperCase();
             }
             return null;
+        }
+    }
+    
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CREATE_FEED && resultCode == RESULT_OK) {
+            if (data == null || data.getData() == null) {
+                return;
+            }
+            
+            Uri feedUri = data.getData();
+            Log.d(TAG, "feedUri: " + feedUri);
+            
+            // save the feed uri
+            getSharedPreferences(PREFS_NAME, 0).edit().putString(PREF_FEED_URI, feedUri.toString()).commit();
+            
+            DbFeed feed = mMusubi.getFeed(feedUri);
+            Log.d(TAG, "me: " + feed.getLocalUser().getId() + ", " + feed.getLocalUser().getName());
+            
+            JSONObject json = new JSONObject();
+            try {
+                json.put("working", true);
+            } catch (JSONException e) {
+                Log.e(TAG, "json issue", e);
+                return;
+            }
+            
+            feed.postObj(new MemObj("noteshere_test", json));
+            
+            // Save members (these are the people I follow)
+            List<DbIdentity> members = feed.getMembers();
+            @SuppressWarnings("unused")
+            List<String> toNotify = new LinkedList<String>();
+            for (DbIdentity member : members) {
+                if (!member.isOwned()) {
+                    Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
+                    // TODO: keep track of following
+                    /*MFollowing following = new MFollowing();
+                    following.feedId = feedEntry.id;
+                    following.userId = member.getId();
+                    mFollowingManager.insertFollowing(following);
+                    toNotify.add(following.userId);*/
+                }
+            }
+            
+            // TODO: send a hello to new members
+            /*SocialClient sc = new SocialClient(mMusubi, this);
+            sc.sendHello(feedUri, toNotify, EntryType.App);*/
+        } else if (requestCode == REQUEST_EDIT_FEED && resultCode == RESULT_OK) {
+            if (data == null || data.getData() == null) {
+                return;
+            }
+            Uri feedUri = data.getData();
+            Log.d(TAG, "feedUri: " + feedUri);
+            // TODO: add to following
+            Set<String> userIds = new HashSet<String>();
+            /*MFeed feedEntry = mFeedManager.getFeed(EntryType.App);
+            Set<MFollowing> followingSet = mFollowingManager.getFollowing(feedEntry.id);
+            for (MFollowing following : followingSet) {
+                userIds.add(following.userId);
+            }*/
+            DbFeed feed = mMusubi.getFeed(feedUri);
+            List<DbIdentity> members = feed.getMembers();
+            @SuppressWarnings("unused")
+            List<String> toNotify = new LinkedList<String>();
+            for (DbIdentity member : members) {
+                if (!member.isOwned()) {
+                    Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
+                    if (!userIds.contains(member.getId())) {
+                        Log.d(TAG, "added: " + member.getId() + ", " + member.getName());
+                        /*MFollowing following = new MFollowing();
+                        following.feedId = feedEntry.id;
+                        following.userId = member.getId();
+                        mFollowingManager.insertFollowing(following);
+                        toNotify.add(following.userId);*/
+                    }
+                }
+            }
+            
+            // TODO: Send a hello to new members
+            /*SocialClient sc = new SocialClient(mMusubi, this);
+            sc.sendHello(feedUri, toNotify, EntryType.App);*/
+        }
+    }
+    
+    private class InstallMusubiDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            // Use the Builder class for convenient dialog construction
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(R.string.install_musubi)
+                   .setTitle(R.string.no_musubi)
+                   .setIcon(R.drawable.musubi_icon)
+                   .setPositiveButton(R.string.google_play, new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                           Intent market = Musubi.getMarketIntent();
+                           getActivity().startActivity(market);
+                       }
+                   })
+                   .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                       public void onClick(DialogInterface dialog, int id) {
+                       }
+                   });
+            // Create the AlertDialog object and return it
+            return builder.create();
         }
     }
 

@@ -1,5 +1,7 @@
 package mobisocial.noteshere.db;
 
+import android.net.Uri;
+
 public class MNote {
     public static final String TABLE = "notes";
 
@@ -24,19 +26,25 @@ public class MNote {
     public static final String COL_TIMESTAMP = "timestamp";
     
     /**
-     * Musubi feed ID
+     * Musubi object uri
      */
-    public static final String COL_OBJ_ID = "obj_id";
+    public static final String COL_OBJ_URI = "obj_uri";
     
     /**
      * Musubi sender ID
      */
     public static final String COL_SENDER_ID = "sender_id";
     
+    /**
+     * Text to show
+     */
+    public static final String COL_TEXT = "note_text";
+    
     public long id;
     public Double latitude;
     public Double longitude;
     public Long timestamp;
-    public Long objId;
-    public Long senderId;
+    public Uri objUri;
+    public String senderId;
+    public String text;
 }

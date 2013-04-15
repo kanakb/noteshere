@@ -5,7 +5,6 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/menu_settings"/>
-    <item android:id="@+id/share" android:title="@string/menu_share" android:icon="@android:drawable/ic_menu_share" android:orderInCategory="100" android:showAsAction="ifRoom"></item>
     <item android:id="@+id/attachment" android:title="@string/attach_image" android:checked="false" android:showAsAction="always" android:checkable="true" android:icon="@android:drawable/ic_menu_gallery" android:orderInCategory="99">
         <menu>
             <item android:id="@+id/camera" android:title="@string/from_camera" android:icon="@android:drawable/ic_menu_camera"/>

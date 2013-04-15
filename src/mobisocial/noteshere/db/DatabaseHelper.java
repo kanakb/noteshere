@@ -17,6 +17,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     @Override
     public void onCreate(SQLiteDatabase db) {
+        createTable(db, MNote.TABLE,
+                MNote.COL_ID, "INTEGER PRIMARY KEY",
+                MNote.COL_LATITUDE, "REAL NOT NULL",
+                MNote.COL_LONGITUDE, "REAL NOT NULL",
+                MNote.COL_TIMESTAMP, "INTEGER NOT NULL",
+                MNote.COL_OBJ_URI, "TEXT NOT NULL",
+                MNote.COL_SENDER_ID, "TEXT NOT NULL",
+                MNote.COL_TEXT, "TEXT");
+        db.execSQL("CREATE INDEX " + MNote.TABLE + "_latlon ON " +
+                MNote.TABLE + "(" + MNote.COL_LATITUDE + "," + MNote.COL_LONGITUDE + ")");
     }
 
     @Override
@@ -32,7 +42,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.setVersion(VERSION);
     }
     
-    @SuppressWarnings("unused")
     private void createTable(SQLiteDatabase db, String tableName, String... cols){
         assert cols.length % 2 == 0;
         String s = "CREATE TABLE " + tableName + " (";
