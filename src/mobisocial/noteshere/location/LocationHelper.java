@@ -19,9 +19,12 @@ public class LocationHelper {
     private final LocationManager mManager;
     private Location mLastLocation;
     
+    private boolean mHaveGpsLoc;
+    
     public LocationHelper(final Activity activity) {
         mManager = (LocationManager)activity.getSystemService(Context.LOCATION_SERVICE);
         mLastLocation = null;
+        mHaveGpsLoc = false;
     }
     
     /**
@@ -31,12 +34,25 @@ public class LocationHelper {
      */
     public Location requestLocation(final LocationResult cb) {
         Location cached = mManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if (cached == null) {
+            cached = mManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
+        if (cached == null) {
+            cached = mManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+        }
         if (cb != null) {
             LocationListener locationListener = new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
                     boolean better = isBetterLocation(location, mLastLocation);
+                    if (mHaveGpsLoc) {
+                        mManager.removeUpdates(this);
+                        return;
+                    }
                     if (better) {
+                        if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
+                            mHaveGpsLoc = true;
+                        }
                         // No need to keep trying if this is what we want
                         mManager.removeUpdates(this);
                         mLastLocation = location;
@@ -55,6 +71,7 @@ public class LocationHelper {
                         Bundle extras) {}
             };
             mManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            mManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
         }
         return cached;
     }

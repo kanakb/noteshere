@@ -3,37 +3,46 @@ package mobisocial.noteshere;
 import java.io.File;
 import java.util.Random;
 
-import mobisocial.noteshere.location.LocationHelper;
-import mobisocial.noteshere.location.LocationHelper.LocationResult;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+//import com.google.android.gms.maps.model.LatLng;
+//import com.google.android.gms.maps.model.MarkerOptions;
 
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.app.Activity;
 import android.content.Intent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.NavUtils;
 
-public class NewNoteActivity extends Activity {
+public class NewNoteActivity extends FragmentActivity {
     public static final String TAG = "NewNoteActivity";
     
     private static final int GALLERY_REQUEST_CODE = 1;
     private static final int CAMERA_REQUEST_CODE = 2;
     
     private String mFilename;
-    private boolean mMusubiInstalled;
     
-    private LocationHelper mLocHelper;
-    @SuppressWarnings("unused")
-    private Location mLocation;
+    //private LocationHelper mLocHelper;
+    //private Location mLocation;
+    
+    private GoogleMap mMap;
+    
+    private boolean mMovedOnce;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_note);
+        
+        mMovedOnce = false;
         
         Intent intent = getIntent();
         if (intent != null) {
@@ -46,23 +55,71 @@ public class NewNoteActivity extends Activity {
         mFilename = "notes/" + random.nextLong() + ".jpg";
         
         // TODO: this should be a shared instance
-        mLocHelper = new LocationHelper(this);
-        mLocation = mLocHelper.requestLocation(new LocationResult() {
+        //mLocHelper = new LocationHelper(this);
+        /*mLocation = mLocHelper.requestLocation(new LocationResult() {
             @Override
             public void onLocation(Location location) {
                 // TODO: save the location
                 mLocation = location;
             }
+        });*/
+        
+        setUpMapIfNeeded();
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        mMovedOnce = false;
+        
+        setUpMapIfNeeded();
+    }
+    
+    private void setUpMapIfNeeded() {
+        if (mMap == null) {
+            mMap = ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.mapFragment)).getMap();
+            if (mMap != null) {
+                setUpMap();
+            }
+        }
+    }
+    
+    private void setUpMap() {
+        /*LatLng marker = null;
+        if (mLocation == null) {
+            marker = new LatLng(0, 0);
+        } else {
+            marker = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+        }
+        mMap.addMarker(new MarkerOptions().position(marker).title("Marker"));*/
+        mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+            @Override
+            public void onMyLocationChange(Location location) {
+                if (!mMovedOnce) {
+                    LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 14.0f));
+                    mMap.clear();
+                    mMap.addMarker(new MarkerOptions().position(position).title("Location"));
+                    mMovedOnce = true;
+                }
+            }
         });
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latlng) {
+                mMap.clear();
+                mMap.addMarker(new MarkerOptions().position(latlng).title("Location"));
+            }
+        });
+        mMap.setMyLocationEnabled(true);
+        
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.activity_new_note, menu);
-        if (!mMusubiInstalled) {
-            menu.findItem(R.id.share).setVisible(false);
-        }
         return true;
     }
 
