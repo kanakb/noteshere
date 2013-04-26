@@ -1,7 +1,6 @@
 package mobisocial.noteshere;
 
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -9,6 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import mobisocial.noteshere.R;
+import mobisocial.noteshere.social.SocialClient;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbIdentity;
 import mobisocial.socialkit.musubi.Musubi;
@@ -48,9 +48,6 @@ public class NotesActivity extends FragmentActivity {
     
     private static final String ADD_TITLE = "member_header";
     private static final String ADD_HEADER = "Following";
-    
-    private static final String PREFS_NAME = "noteshere_prefs";
-    private static final String PREF_FEED_URI = "feed_uri";
     
     private Musubi mMusubi;
 
@@ -115,8 +112,8 @@ public class NotesActivity extends FragmentActivity {
                 new InstallMusubiDialogFragment().show(getSupportFragmentManager(), null);
                 return super.onOptionsItemSelected(item);
             }
-            SharedPreferences p = getSharedPreferences(PREFS_NAME, 0);
-            String feedEntry = p.getString(PREF_FEED_URI, null);
+            SharedPreferences p = getSharedPreferences(App.PREFS_NAME, 0);
+            String feedEntry = p.getString(App.PREF_FEED_URI, null);
             Uri feedUri = (feedEntry != null) ? Uri.parse(feedEntry) : null;
             Log.d(TAG, "trying to add followers ");
             String action = ACTION_CREATE_FEED;
@@ -183,6 +180,7 @@ public class NotesActivity extends FragmentActivity {
     
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        SharedPreferences p = getSharedPreferences(App.PREFS_NAME, 0);
         if (requestCode == REQUEST_CREATE_FEED && resultCode == RESULT_OK) {
             if (data == null || data.getData() == null) {
                 return;
@@ -192,7 +190,7 @@ public class NotesActivity extends FragmentActivity {
             Log.d(TAG, "feedUri: " + feedUri);
             
             // save the feed uri
-            getSharedPreferences(PREFS_NAME, 0).edit().putString(PREF_FEED_URI, feedUri.toString()).commit();
+            p.edit().putString(App.PREF_FEED_URI, feedUri.toString()).commit();
             
             DbFeed feed = mMusubi.getFeed(feedUri);
             Log.d(TAG, "me: " + feed.getLocalUser().getId() + ", " + feed.getLocalUser().getName());
@@ -209,57 +207,42 @@ public class NotesActivity extends FragmentActivity {
             
             // Save members (these are the people I follow)
             List<DbIdentity> members = feed.getMembers();
-            @SuppressWarnings("unused")
-            List<String> toNotify = new LinkedList<String>();
+            Set<String> following = new HashSet<String>();
             for (DbIdentity member : members) {
                 if (!member.isOwned()) {
                     Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
-                    // TODO: keep track of following
-                    /*MFollowing following = new MFollowing();
-                    following.feedId = feedEntry.id;
-                    following.userId = member.getId();
-                    mFollowingManager.insertFollowing(following);
-                    toNotify.add(following.userId);*/
+                    following.add(member.getId());
                 }
             }
+            p.edit().putStringSet(App.PREF_FOLLOWING, following).commit();
             
-            // TODO: send a hello to new members
-            /*SocialClient sc = new SocialClient(mMusubi, this);
-            sc.sendHello(feedUri, toNotify, EntryType.App);*/
+            SocialClient sc = new SocialClient(this, mMusubi);
+            sc.sendHello(following);
         } else if (requestCode == REQUEST_EDIT_FEED && resultCode == RESULT_OK) {
             if (data == null || data.getData() == null) {
                 return;
             }
             Uri feedUri = data.getData();
             Log.d(TAG, "feedUri: " + feedUri);
-            // TODO: add to following
-            Set<String> userIds = new HashSet<String>();
-            /*MFeed feedEntry = mFeedManager.getFeed(EntryType.App);
-            Set<MFollowing> followingSet = mFollowingManager.getFollowing(feedEntry.id);
-            for (MFollowing following : followingSet) {
-                userIds.add(following.userId);
-            }*/
+            Set<String> userIds = p.getStringSet(App.PREF_FOLLOWING, null);
             DbFeed feed = mMusubi.getFeed(feedUri);
             List<DbIdentity> members = feed.getMembers();
-            @SuppressWarnings("unused")
-            List<String> toNotify = new LinkedList<String>();
+            Set<String> toNotify = new HashSet<String>();
+            Set<String> following = new HashSet<String>();
             for (DbIdentity member : members) {
                 if (!member.isOwned()) {
                     Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
                     if (!userIds.contains(member.getId())) {
                         Log.d(TAG, "added: " + member.getId() + ", " + member.getName());
-                        /*MFollowing following = new MFollowing();
-                        following.feedId = feedEntry.id;
-                        following.userId = member.getId();
-                        mFollowingManager.insertFollowing(following);
-                        toNotify.add(following.userId);*/
+                        toNotify.add(member.getId());
                     }
+                    following.add(member.getId());
                 }
             }
+            p.edit().putStringSet(App.PREF_FOLLOWING, following).commit();
             
-            // TODO: Send a hello to new members
-            /*SocialClient sc = new SocialClient(mMusubi, this);
-            sc.sendHello(feedUri, toNotify, EntryType.App);*/
+            SocialClient sc = new SocialClient(this, mMusubi);
+            sc.sendHello(toNotify);
         }
     }
     

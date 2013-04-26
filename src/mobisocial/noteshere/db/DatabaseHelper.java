@@ -22,11 +22,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 MNote.COL_LATITUDE, "REAL NOT NULL",
                 MNote.COL_LONGITUDE, "REAL NOT NULL",
                 MNote.COL_TIMESTAMP, "INTEGER NOT NULL",
-                MNote.COL_OBJ_URI, "TEXT NOT NULL",
                 MNote.COL_SENDER_ID, "TEXT NOT NULL",
-                MNote.COL_TEXT, "TEXT");
+                MNote.COL_NAME, "TEXT NOT NULL",
+                MNote.COL_OWNED, "INTEGER NOT NULL",
+                MNote.COL_TEXT, "TEXT",
+                MNote.COL_ATTACHMENT, "BLOB");
         db.execSQL("CREATE INDEX " + MNote.TABLE + "_latlon ON " +
                 MNote.TABLE + "(" + MNote.COL_LATITUDE + "," + MNote.COL_LONGITUDE + ")");
+        db.execSQL("CREATE INDEX " + MNote.TABLE + "_senderwhen ON " +
+                MNote.TABLE + "(" + MNote.COL_TIMESTAMP + "," + MNote.COL_SENDER_ID + ")");
+        
+        createTable(db, MFollower.TABLE,
+                MFollower.COL_ID, "INTEGER PRIMARY KEY",
+                MFollower.COL_USER_ID, "TEXT NOT NULL",
+                MFollower.COL_FEED_URI, "TEXT NOT NULL");
+        db.execSQL("CREATE INDEX " + MFollower.TABLE + "_uid ON " +
+                MFollower.TABLE + "(" + MFollower.COL_USER_ID + ")");
     }
 
     @Override
