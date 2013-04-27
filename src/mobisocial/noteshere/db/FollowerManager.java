@@ -1,7 +1,7 @@
 package mobisocial.noteshere.db;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -117,9 +117,9 @@ public class FollowerManager extends ManagerBase {
     /**
      * Get all followers
      * @param type EntryType of followers
-     * @return List of MFollower objects
+     * @return Set of MFollower objects
      */
-    public List<MFollower> getFollowers() {
+    public Set<MFollower> getFollowers() {
         SQLiteDatabase db = initializeDatabase();
         String table = MFollower.TABLE;
         String[] columns = STANDARD_FIELDS;
@@ -128,7 +128,7 @@ public class FollowerManager extends ManagerBase {
         String groupBy = null, having = null, orderBy = null;
         Cursor c = db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         try {
-            List<MFollower> followers = new ArrayList<MFollower>();
+            Set<MFollower> followers = new HashSet<MFollower>();
             while (c.moveToNext()) {
                 followers.add(fillInStandardFields(c));
             }

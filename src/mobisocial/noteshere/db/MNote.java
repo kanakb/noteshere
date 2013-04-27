@@ -57,4 +57,7 @@ public class MNote {
     public Boolean owned;
     public String text;
     public byte[] attachment;
+    
+    // not used in the database
+    public Boolean followOwned;
 }

@@ -8,6 +8,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import mobisocial.noteshere.R;
+import mobisocial.noteshere.db.FollowingManager;
+import mobisocial.noteshere.db.MFollowing;
 import mobisocial.noteshere.social.SocialClient;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbIdentity;
@@ -180,6 +182,7 @@ public class NotesActivity extends FragmentActivity {
     
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        FollowingManager fm = new FollowingManager(App.getDatabaseSource(this));
         SharedPreferences p = getSharedPreferences(App.PREFS_NAME, 0);
         if (requestCode == REQUEST_CREATE_FEED && resultCode == RESULT_OK) {
             if (data == null || data.getData() == null) {
@@ -212,9 +215,11 @@ public class NotesActivity extends FragmentActivity {
                 if (!member.isOwned()) {
                     Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
                     following.add(member.getId());
+                    MFollowing follow = new MFollowing();
+                    follow.userId = member.getId();
+                    fm.insertFollowing(follow);
                 }
             }
-            p.edit().putStringSet(App.PREF_FOLLOWING, following).commit();
             
             SocialClient sc = new SocialClient(this, mMusubi);
             sc.sendHello(following);
@@ -224,22 +229,22 @@ public class NotesActivity extends FragmentActivity {
             }
             Uri feedUri = data.getData();
             Log.d(TAG, "feedUri: " + feedUri);
-            Set<String> userIds = p.getStringSet(App.PREF_FOLLOWING, null);
+            Set<String> userIds = fm.getFollowing();
             DbFeed feed = mMusubi.getFeed(feedUri);
             List<DbIdentity> members = feed.getMembers();
             Set<String> toNotify = new HashSet<String>();
-            Set<String> following = new HashSet<String>();
             for (DbIdentity member : members) {
                 if (!member.isOwned()) {
                     Log.d(TAG, "member: " + member.getId() + ", " + member.getName());
                     if (!userIds.contains(member.getId())) {
                         Log.d(TAG, "added: " + member.getId() + ", " + member.getName());
                         toNotify.add(member.getId());
+                        MFollowing follow = new MFollowing();
+                        follow.userId = member.getId();
+                        fm.insertFollowing(follow);
                     }
-                    following.add(member.getId());
                 }
             }
-            p.edit().putStringSet(App.PREF_FOLLOWING, following).commit();
             
             SocialClient sc = new SocialClient(this, mMusubi);
             sc.sendHello(toNotify);

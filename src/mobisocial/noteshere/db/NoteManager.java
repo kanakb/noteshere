@@ -101,14 +101,13 @@ public class NoteManager extends ManagerBase {
         }
     }
     
-    public MNote getNote(Long timestamp, String senderId) {
+    public MNote getNote(Long timestamp) {
         SQLiteDatabase db = initializeDatabase();
         String table = MNote.TABLE;
         String[] columns = LIMITED_FIELDS;
-        String selection = MNote.COL_TIMESTAMP + "=? AND " + MNote.COL_SENDER_ID + "=?";
+        String selection = MNote.COL_TIMESTAMP + "=?";
         String[] selectionArgs = new String[] {
-                timestamp.toString(),
-                senderId
+                timestamp.toString()
         };
         String groupBy = null, having = null, orderBy = null;
         Cursor c = db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
@@ -121,6 +120,18 @@ public class NoteManager extends ManagerBase {
         } finally {
             c.close();
         }
+    }
+    
+    public Cursor getOneLevelNoteCursor() {
+        SQLiteDatabase db = initializeDatabase();
+        String table = MNote.TABLE;
+        String[] columns = STANDARD_FIELDS;
+        String innerSelection = "SELECT " + MFollowing.COL_USER_ID + " FROM " + MFollowing.TABLE;
+        String selection = "(" + MNote.COL_OWNED + "=1) OR (" + MNote.COL_SENDER_ID + " IN (" +
+                innerSelection + "))";
+        String[] selectionArgs = null;
+        String groupBy = null, having = null, orderBy = null;
+        return db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
     }
     
     public Cursor getMyNotesCursor() {
@@ -145,7 +156,7 @@ public class NoteManager extends ManagerBase {
         return note;
     }
     
-    private MNote fillInStandardFields(Cursor c) {
+    public MNote fillInStandardFields(Cursor c) {
         MNote note = fillInLimitedFields(c);
         if (!c.isNull(text)) {
             note.text = c.getString(text);

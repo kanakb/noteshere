@@ -1,6 +1,6 @@
 package mobisocial.noteshere.social;
 
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.json.JSONArray;
@@ -19,6 +19,7 @@ import mobisocial.socialkit.musubi.Musubi;
 import mobisocial.socialkit.obj.MemObj;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
@@ -34,31 +35,37 @@ public class SocialClient {
     private final Context mContext;
     private final Musubi mMusubi;
     private final NoteManager mNoteManager;
-    @SuppressWarnings("unused")
     private final FollowerManager mFollowerManager;
+    private final SharedPreferences mPrefs;
     
     public SocialClient(Context context, Musubi musubi) {
         mContext = context;
         mMusubi = musubi;
         mNoteManager = new NoteManager(App.getDatabaseSource(mContext));
         mFollowerManager = new FollowerManager(App.getDatabaseSource(mContext));
+        mPrefs = mContext.getSharedPreferences(App.PREFS_NAME, 0);
     }
     
-    public void sendToFollowers(List<MNote> notes, Set<MFollower> followers, String exclude) {
-        for (MNote note : notes) {
-            JSONObject json = noteToJson(note);
-            if (json == null) continue;
-            
-            for (MFollower follower : followers) {
-                if (exclude != null && exclude.equals(follower.userId)) continue;
-                DbFeed feed = mMusubi.getFeed(follower.feedUri);
-                if (feed == null) {
-                    Log.w(TAG, "feed no longer exists");
-                    continue;
-                }
-                feed.postObj(new MemObj(NOTE, json));
-                Log.d(TAG, "Sending " + MNote.COL_TIMESTAMP + " to " + follower.userId);
+    public void sendToFollowers(MNote note, Set<MFollower> followers, String exclude) {
+        String encodedUri = mPrefs.getString(App.PREF_FEED_URI, null);
+        Uri feedUri;
+        if (encodedUri == null) {
+            feedUri = null;
+        } else {
+            feedUri = Uri.parse(encodedUri);
+        }
+        JSONObject json = noteToJson(note, feedUri);
+        if (json == null) return;
+        
+        for (MFollower follower : followers) {
+            if (exclude != null && follower.userId.equals(exclude)) continue;
+            DbFeed feed = mMusubi.getFeed(follower.feedUri);
+            if (feed == null) {
+                Log.w(TAG, "feed no longer exists");
+                continue;
             }
+            feed.postObj(new MemObj(NOTE, json));
+            Log.d(TAG, "Sending " + MNote.COL_TIMESTAMP + " to " + follower.userId);
         }
     }
     
@@ -74,8 +81,7 @@ public class SocialClient {
             Log.e(TAG, "bad json", e);
             return;
         }
-        SharedPreferences p = mContext.getSharedPreferences(App.PREFS_NAME, 0);
-        String encodedUri = p.getString(App.PREF_FEED_URI, null);
+        String encodedUri = mPrefs.getString(App.PREF_FEED_URI, null);
         if (encodedUri == null) {
             Log.w(TAG, "bad uri");
             return;
@@ -92,7 +98,11 @@ public class SocialClient {
     public void handleIncomingObj(DbObj obj) {
         if (obj.getSender().isOwned()) return;
         if (obj.getType().equals(NOTE)) {
-            
+            String feedString = obj.getContainingFeed().getUri().toString();
+            String myFeedString = mPrefs.getString(App.PREF_FEED_URI, null);
+            if (feedString.equals(myFeedString)) {
+                handleNote(obj);
+            }
         }
         else if (obj.getType().equals(HELLO)) {
             JSONObject json = obj.getJson();
@@ -109,14 +119,54 @@ public class SocialClient {
                     }
                 }
                 if (ownOne) {
-                    // handle the hello
+                    handleHello(obj);
                 }
             }
         }
     }
     
-    private JSONObject noteToJson(MNote note) {
+    private void handleHello(DbObj obj) {
+        DbFeed feed = obj.getContainingFeed();
+        DbIdentity sender = obj.getSender();
+        
+        // Send all of my and following notes to a single follower
+        MFollower follower = mFollowerManager.ensureFollower(sender.getId(), feed.getUri());
+        Set<MFollower> followers = new HashSet<MFollower>();
+        followers.add(follower);
+        Cursor c = mNoteManager.getOneLevelNoteCursor();
         try {
+            while (c.moveToNext()) {
+                MNote note = mNoteManager.fillInStandardFields(c);
+                sendToFollowers(note, followers, null);
+            }
+        } finally {
+            c.close();
+        }
+    }
+    
+    private void handleNote(DbObj obj) {
+        JSONObject json = obj.getJson();
+        MNote note = jsonToNote(json, obj.getContainingFeed().getUri());
+        if (note == null) {
+            Log.d(TAG, "bad note");
+            return;
+        }
+        
+        if (note.owned || note.followOwned) {
+            Set<MFollower> followers = mFollowerManager.getFollowers();
+            sendToFollowers(note, followers, obj.getSender().getId());
+        }
+    }
+    
+    private JSONObject noteToJson(MNote note, Uri feedUri) {
+        try {
+            // May have started using this before Musubi was installed
+            if (note.owned) {
+                DbIdentity ident = mMusubi.userForLocalDevice(feedUri);
+                if (ident == null) return null;
+                note.senderId = ident.getId();
+                note.senderName = ident.getName();
+            }
             JSONObject json = new JSONObject();
             json.put(MNote.COL_LATITUDE, note.latitude);
             json.put(MNote.COL_LONGITUDE, note.longitude);
@@ -140,13 +190,19 @@ public class SocialClient {
         }
     }
     
-    @SuppressWarnings("unused")
-    private MNote jsonToNote(JSONObject json) {
+    private MNote jsonToNote(JSONObject json, Uri feedUri) {
         try {
             Long timestamp = json.getLong(MNote.COL_TIMESTAMP);
             String senderId = json.getString(MNote.COL_SENDER_ID);
-            MNote note = mNoteManager.getNote(timestamp, senderId);
+            MNote note = mNoteManager.getNote(timestamp);
             if (note != null) {
+                if (note.owned) {
+                    DbIdentity ident = mMusubi.userForLocalDevice(feedUri);
+                    if (ident == null) return null;
+                    note.senderId = ident.getId();
+                    note.senderName = ident.getName();
+                }
+                note.followOwned = json.getBoolean(MNote.COL_OWNED);
                 return note;
             }
             note = new MNote();
@@ -156,6 +212,7 @@ public class SocialClient {
             note.senderId = senderId;
             note.senderName = json.getString(MNote.COL_NAME);
             note.owned = false;
+            note.followOwned = json.getBoolean(MNote.COL_OWNED);
             if (json.has(MNote.COL_TEXT)) {
                 note.text = json.getString(MNote.COL_TEXT);
             }

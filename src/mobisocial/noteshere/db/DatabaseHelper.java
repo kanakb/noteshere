@@ -38,6 +38,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 MFollower.COL_FEED_URI, "TEXT NOT NULL");
         db.execSQL("CREATE INDEX " + MFollower.TABLE + "_uid ON " +
                 MFollower.TABLE + "(" + MFollower.COL_USER_ID + ")");
+        
+        createTable(db, MFollowing.TABLE,
+                MFollowing.COL_ID, "INTEGER PRIMARY KEY",
+                MFollowing.COL_USER_ID, "TEXT NOT NULL");
+        db.execSQL("CREATE INDEX " + MFollowing.TABLE + "_uid ON " +
+                MFollowing.TABLE + "(" + MFollowing.COL_USER_ID + ")");
     }
 
     @Override
