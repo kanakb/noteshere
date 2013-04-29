@@ -12,5 +12,6 @@
         </menu>
     </item>
     <item android:id="@+id/save" android:orderInCategory="101" android:showAsAction="always" android:title="@string/save" android:icon="@android:drawable/ic_menu_save"></item>
+    <item android:id="@+id/view_attach" android:title="@string/view_attached" android:visible="false" android:orderInCategory="98" android:showAsAction="always"></item>
 
 </menu>

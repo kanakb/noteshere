@@ -1,7 +1,12 @@
 package mobisocial.noteshere;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Random;
+
+import mobisocial.noteshere.db.MNote;
+import mobisocial.noteshere.db.NoteManager;
+import mobisocial.noteshere.util.UriImage;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -13,12 +18,17 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import android.location.Location;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.app.Activity;
 import android.content.Intent;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
+import android.widget.Toast;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.NavUtils;
 
@@ -28,7 +38,14 @@ public class NewNoteActivity extends FragmentActivity {
     private static final int GALLERY_REQUEST_CODE = 1;
     private static final int CAMERA_REQUEST_CODE = 2;
     
+    private static final int MAX_IMAGE_WIDTH = 1280;
+    private static final int MAX_IMAGE_HEIGHT = 720;
+    private static final int MAX_IMAGE_SIZE = 40 * 1024;
+    
     private String mFilename;
+    private Uri mFileUri;
+    
+    private TextView mTextView;
     
     //private LocationHelper mLocHelper;
     //private Location mLocation;
@@ -36,6 +53,8 @@ public class NewNoteActivity extends FragmentActivity {
     private GoogleMap mMap;
     
     private boolean mMovedOnce;
+    
+    private NoteManager mNoteManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +62,8 @@ public class NewNoteActivity extends FragmentActivity {
         setContentView(R.layout.activity_new_note);
         
         mMovedOnce = false;
+        
+        mTextView = (TextView)findViewById(R.id.noteText);
         
         Intent intent = getIntent();
         if (intent != null) {
@@ -54,15 +75,15 @@ public class NewNoteActivity extends FragmentActivity {
         Random random = new Random();
         mFilename = "notes/" + random.nextLong() + ".jpg";
         
-        // TODO: this should be a shared instance
         //mLocHelper = new LocationHelper(this);
         /*mLocation = mLocHelper.requestLocation(new LocationResult() {
             @Override
             public void onLocation(Location location) {
-                // TODO: save the location
                 mLocation = location;
             }
         });*/
+        
+        mNoteManager = new NoteManager(App.getDatabaseSource(this));
         
         setUpMapIfNeeded();
     }
@@ -140,8 +161,8 @@ public class NewNoteActivity extends FragmentActivity {
             // Get a picture from the camera
             Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             File photo = new File(Environment.getExternalStorageDirectory(), mFilename);
-            Uri outputFileUri = Uri.fromFile(photo);
-            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
+            mFileUri = Uri.fromFile(photo);
+            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, mFileUri);
             startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE);
             return true;
         case R.id.gallery:
@@ -155,14 +176,58 @@ public class NewNoteActivity extends FragmentActivity {
         case R.id.save:
             // Need to collect all relevant data and save it in the database
             // Also need to post an object if sharing was enabled
-            return super.onContextItemSelected(item);
+            String text = mTextView.getText().toString();
+            if ((text == null || text.length() == 0) && mFileUri == null) {
+                Toast.makeText(this, "Please write something or take a picture first.", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            new NoteSaveTask().execute();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            mFileUri = data.getData();
+        }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+    
+    private class NoteSaveTask extends AsyncTask<Void, Void, byte[]> {
+        @Override
+        protected byte[] doInBackground(Void... params) {
+            if (mFileUri == null) return null;
+            UriImage image = new UriImage(NewNoteActivity.this, mFileUri);
+            try {
+                return image.getResizedImageData(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, MAX_IMAGE_SIZE);
+            } catch (IOException e) {
+                Log.w(TAG, "image conversion failed", e);
+                return null;
+            }
+        }
+        
+        @Override
+        protected void onPostExecute(byte[] data) {
+            MNote note = new MNote();
+            String text = mTextView.getText().toString();
+            if (text != null && text.length() > 0) {
+                note.text = text;
+            }
+            if (data != null && data.length > 0) {
+                note.attachment = data;
+            }
+            note.latitude = 0.0; // TODO: real location
+            note.longitude = 0.0;
+            note.timestamp = System.currentTimeMillis();
+            note.owned = true;
+            note.senderId = "";
+            note.senderName = "";
+            mNoteManager.insertNote(note);
+            Toast.makeText(NewNoteActivity.this, "Note saved.", Toast.LENGTH_SHORT).show();
+            NewNoteActivity.this.finish();
+        }
     }
 
 }
