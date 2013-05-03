@@ -4,9 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
+import mobisocial.noteshere.db.FollowerManager;
 import mobisocial.noteshere.db.MNote;
 import mobisocial.noteshere.db.NoteManager;
+import mobisocial.noteshere.social.SocialClient;
 import mobisocial.noteshere.util.UriImage;
+import mobisocial.socialkit.musubi.Musubi;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -37,10 +40,11 @@ public class NewNoteActivity extends FragmentActivity {
     
     private static final int GALLERY_REQUEST_CODE = 1;
     private static final int CAMERA_REQUEST_CODE = 2;
+    private static final int PREVIEW_REQUEST_CODE = 3;
     
-    private static final int MAX_IMAGE_WIDTH = 1280;
-    private static final int MAX_IMAGE_HEIGHT = 720;
-    private static final int MAX_IMAGE_SIZE = 40 * 1024;
+    public static final int MAX_IMAGE_WIDTH = 1280;
+    public static final int MAX_IMAGE_HEIGHT = 720;
+    public static final int MAX_IMAGE_SIZE = 40 * 1024;
     
     private String mFilename;
     private Uri mFileUri;
@@ -55,6 +59,13 @@ public class NewNoteActivity extends FragmentActivity {
     private boolean mMovedOnce;
     
     private NoteManager mNoteManager;
+    private FollowerManager mFollowerManager;
+    
+    private Musubi mMusubi;
+    
+    private MenuItem mAttachmentItem;
+    
+    private LatLng mLatLng;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +73,8 @@ public class NewNoteActivity extends FragmentActivity {
         setContentView(R.layout.activity_new_note);
         
         mMovedOnce = false;
+        
+        mLatLng = new LatLng(0.0, 0.0);
         
         mTextView = (TextView)findViewById(R.id.noteText);
         
@@ -73,7 +86,9 @@ public class NewNoteActivity extends FragmentActivity {
         }
         
         Random random = new Random();
-        mFilename = "notes/" + random.nextLong() + ".jpg";
+        long identifier = random.nextLong();
+        identifier = (identifier >= 0) ? identifier : -identifier;
+        mFilename = "notes_" + random.nextLong() + ".jpg";
         
         //mLocHelper = new LocationHelper(this);
         /*mLocation = mLocHelper.requestLocation(new LocationResult() {
@@ -84,6 +99,11 @@ public class NewNoteActivity extends FragmentActivity {
         });*/
         
         mNoteManager = new NoteManager(App.getDatabaseSource(this));
+        mFollowerManager = new FollowerManager(App.getDatabaseSource(this));
+        
+        if (Musubi.isMusubiInstalled(this)) {
+            mMusubi = Musubi.getInstance(this);
+        }
         
         setUpMapIfNeeded();
     }
@@ -92,7 +112,10 @@ public class NewNoteActivity extends FragmentActivity {
     protected void onResume() {
         super.onResume();
         
-        mMovedOnce = false;
+        //mMovedOnce = false;
+        if (mFileUri != null && mAttachmentItem != null) {
+            mAttachmentItem.setVisible(true);
+        }
         
         setUpMapIfNeeded();
     }
@@ -118,10 +141,10 @@ public class NewNoteActivity extends FragmentActivity {
             @Override
             public void onMyLocationChange(Location location) {
                 if (!mMovedOnce) {
-                    LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 14.0f));
+                    mLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mLatLng, 14.0f));
                     mMap.clear();
-                    mMap.addMarker(new MarkerOptions().position(position).title("Location"));
+                    mMap.addMarker(new MarkerOptions().position(mLatLng).title("Location"));
                     mMovedOnce = true;
                 }
             }
@@ -130,6 +153,7 @@ public class NewNoteActivity extends FragmentActivity {
             @Override
             public void onMapClick(LatLng latlng) {
                 mMap.clear();
+                mLatLng = latlng;
                 mMap.addMarker(new MarkerOptions().position(latlng).title("Location"));
             }
         });
@@ -141,6 +165,7 @@ public class NewNoteActivity extends FragmentActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.activity_new_note, menu);
+        mAttachmentItem = menu.findItem(R.id.view_attach);
         return true;
     }
 
@@ -183,6 +208,11 @@ public class NewNoteActivity extends FragmentActivity {
             }
             new NoteSaveTask().execute();
             return true;
+        case R.id.view_attach:
+            Intent viewAttachmentIntent = new Intent(this, ViewAttachmentActivity.class);
+            viewAttachmentIntent.setData(mFileUri);
+            startActivityForResult(viewAttachmentIntent, PREVIEW_REQUEST_CODE);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -191,6 +221,13 @@ public class NewNoteActivity extends FragmentActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             mFileUri = data.getData();
+            mAttachmentItem.setVisible(true);
+        }
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            mAttachmentItem.setVisible(true);
+        }
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode != Activity.RESULT_OK) {
+            mFileUri = null;
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -218,13 +255,19 @@ public class NewNoteActivity extends FragmentActivity {
             if (data != null && data.length > 0) {
                 note.attachment = data;
             }
-            note.latitude = 0.0; // TODO: real location
-            note.longitude = 0.0;
+            note.latitude = mLatLng.latitude;
+            note.longitude = mLatLng.longitude;
             note.timestamp = System.currentTimeMillis();
             note.owned = true;
             note.senderId = "";
             note.senderName = "";
             mNoteManager.insertNote(note);
+            
+            if (mMusubi != null) {
+                SocialClient sc = new SocialClient(NewNoteActivity.this, mMusubi);
+                sc.sendToFollowers(note, mFollowerManager.getFollowers(), null);
+            }
+            
             Toast.makeText(NewNoteActivity.this, "Note saved.", Toast.LENGTH_SHORT).show();
             NewNoteActivity.this.finish();
         }

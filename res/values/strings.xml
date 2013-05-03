@@ -19,9 +19,11 @@
     <string name="no_musubi">Musubi Not Installed</string>
     <string name="google_play">Play Store</string>
     <string name="cancel">Cancel</string>
-    <string name="title_activity_view_note">ViewNoteActivity</string>
+    <string name="title_activity_view_note">Note</string>
     <string name="action_settings">Settings</string>
     <string name="note">Note</string>
     <string name="view_attached">View Attached Image</string>
+    <string name="title_activity_view_attachment">View Attachment</string>
+    <string name="preview">Preview</string>
 
 </resources>
