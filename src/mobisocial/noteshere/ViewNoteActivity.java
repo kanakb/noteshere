@@ -1,5 +1,6 @@
 package mobisocial.noteshere;
 
+import java.text.DateFormat;
 import java.util.Date;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -19,7 +20,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.NavUtils;
 
 public class ViewNoteActivity extends FragmentActivity {
     
@@ -47,7 +47,11 @@ public class ViewNoteActivity extends FragmentActivity {
         TextView text = (TextView)findViewById(R.id.viewNoteText);
         ImageView attachment = (ImageView)findViewById(R.id.attachmentView);
         
-        title.setText(mNote.senderName + " on " + new Date(mNote.timestamp));
+        if (mNote.owned) {
+            mNote.senderName = "Me";
+        }
+        DateFormat format = DateFormat.getDateTimeInstance();
+        title.setText(mNote.senderName + " on " + format.format(new Date(mNote.timestamp)));
         if (mNote.text != null) {
             text.setText(mNote.text);
         } else {
@@ -57,6 +61,7 @@ public class ViewNoteActivity extends FragmentActivity {
         if (mNote.attachment != null) {
             Bitmap bm = BitmapFactory.decodeByteArray(mNote.attachment, 0, mNote.attachment.length);
             attachment.setImageBitmap(bm);
+            attachment.setVisibility(View.VISIBLE);
         }
         
         setUpMapIfNeeded();
@@ -113,7 +118,8 @@ public class ViewNoteActivity extends FragmentActivity {
             //
             // http://developer.android.com/design/patterns/navigation.html#up-vs-back
             //
-            NavUtils.navigateUpFromSameTask(this);
+            finish();
+            //NavUtils.navigateUpFromSameTask(this);
             return true;
         }
         return super.onOptionsItemSelected(item);

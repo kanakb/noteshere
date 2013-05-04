@@ -140,19 +140,20 @@ public class NoteManager extends ManagerBase {
         String[] columns = LIMITED_FIELDS;
         String selection = MNote.COL_OWNED + "=1";
         String[] selectionArgs = null;
-        String groupBy = null, having = null, orderBy = null;
+        String groupBy = null, having = null;
+        String orderBy = MNote.COL_ID + " DESC";
         return db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
     }
     
-    private MNote fillInLimitedFields(Cursor c) {
+    public MNote fillInLimitedFields(Cursor c) {
         MNote note = new MNote();
         note.id = c.getLong(_id);
         note.latitude = c.getDouble(latitude);
         note.longitude = c.getDouble(longitude);
         note.timestamp = c.getLong(timestamp);
         note.senderId = c.getString(senderId);
-        note.text = c.getString(text);
         note.senderName = c.getString(name);
+        note.owned = (c.getLong(owned) == 0L) ? false : true;
         return note;
     }
     

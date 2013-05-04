@@ -6,7 +6,7 @@ public class MNote {
     /**
      * Primary identifier
      */
-    public static final String COL_ID = "id";
+    public static final String COL_ID = "_id";
     
     /**
      * Latitude coordinate
