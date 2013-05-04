@@ -51,9 +51,6 @@ public class NewNoteActivity extends FragmentActivity {
     
     private TextView mTextView;
     
-    //private LocationHelper mLocHelper;
-    //private Location mLocation;
-    
     private GoogleMap mMap;
     
     private boolean mMovedOnce;
@@ -89,14 +86,6 @@ public class NewNoteActivity extends FragmentActivity {
         long identifier = random.nextLong();
         identifier = (identifier >= 0) ? identifier : -identifier;
         mFilename = "notes_" + random.nextLong() + ".jpg";
-        
-        //mLocHelper = new LocationHelper(this);
-        /*mLocation = mLocHelper.requestLocation(new LocationResult() {
-            @Override
-            public void onLocation(Location location) {
-                mLocation = location;
-            }
-        });*/
         
         mNoteManager = new NoteManager(App.getDatabaseSource(this));
         mFollowerManager = new FollowerManager(App.getDatabaseSource(this));

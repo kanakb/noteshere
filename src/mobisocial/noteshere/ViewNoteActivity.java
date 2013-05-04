@@ -89,6 +89,7 @@ public class ViewNoteActivity extends FragmentActivity {
         LatLng latlng = new LatLng(mNote.latitude, mNote.longitude);
         mMap.addMarker(new MarkerOptions().position(latlng).title(mNote.senderName));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng, 14.0f));
+        mMap.setMyLocationEnabled(true);
     }
 
     /**

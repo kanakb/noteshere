@@ -39,6 +39,7 @@ public class NoteManager extends ManagerBase {
     private static final int attachment = 8;
     
     private SQLiteStatement sqlInsertNote;
+    private SQLiteStatement sqlUpdateSenderName;
     
     public NoteManager(SQLiteDatabase db) {
         super(db);
@@ -80,6 +81,35 @@ public class NoteManager extends ManagerBase {
             bindField(sqlInsertNote, attachment, note.attachment);
             note.id = sqlInsertNote.executeInsert();
         }
+    }
+    
+    public void updateSenderName(MNote note) {
+        SQLiteDatabase db = initializeDatabase();
+        if (sqlUpdateSenderName == null) {
+            synchronized(this) {
+                if (sqlUpdateSenderName == null) {
+                    StringBuilder sql = new StringBuilder()
+                        .append("UPDATE ").append(MNote.TABLE)
+                        .append(" SET ")
+                        .append(MNote.COL_NAME).append("=?")
+                        .append(" WHERE ").append(MNote.COL_ID).append("=?");
+                    sqlUpdateSenderName = db.compileStatement(sql.toString());
+                }
+            }
+        }
+        synchronized(sqlUpdateSenderName) {
+            bindField(sqlUpdateSenderName, 1, note.senderName);
+            bindField(sqlUpdateSenderName, 2, note.id);
+            sqlUpdateSenderName.executeUpdateDelete();
+        }
+    }
+    
+    public boolean deleteNote(Long id) {
+        SQLiteDatabase db = initializeDatabase();
+        String table = MNote.TABLE;
+        String whereClause = MNote.COL_ID + "=?";
+        String[] whereArgs = new String[] { id.toString() };
+        return db.delete(table, whereClause, whereArgs) > 0;
     }
     
     public MNote getNote(long id) {
@@ -143,6 +173,21 @@ public class NoteManager extends ManagerBase {
         String groupBy = null, having = null;
         String orderBy = MNote.COL_ID + " DESC";
         return db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
+    }
+    
+    public Cursor getNearbyNoteCursor(Double latitude, Double longitude) {
+        SQLiteDatabase db = initializeDatabase();
+        String table = MNote.TABLE;
+        String[] columns = LIMITED_FIELDS;
+        String selection = null;
+        String[] selectionArgs = null;
+        String groupBy = null, having = null;
+        String orderBy = "((" + latitude.toString() + " - " + MNote.COL_LATITUDE + ") * " +
+                "(" + latitude.toString() + " - " + MNote.COL_LATITUDE + ") + " +
+                "(" + longitude.toString() + " - " + MNote.COL_LONGITUDE + ") * " +
+                "(" + longitude.toString() + " - " + MNote.COL_LONGITUDE + ")) ASC";
+        String limit = "100";
+        return db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy, limit);
     }
     
     public MNote fillInLimitedFields(Cursor c) {

@@ -30,13 +30,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 public class NotesActivity extends FragmentActivity {
     private static final String TAG = "NotesActivity";
@@ -158,14 +153,15 @@ public class NotesActivity extends FragmentActivity {
             // below) with the page number as its lone argument.
             Fragment fragment = new NoteListFragment();
             Bundle args = new Bundle();
-            args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+            boolean isMine = (position == 0) ? false : true;
+            args.putBoolean(NoteListFragment.ARG_IS_MINE, isMine);
             fragment.setArguments(args);
             return fragment;
         }
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
+            // Show 2 total pages.
             return 2;
         }
 
@@ -272,33 +268,6 @@ public class NotesActivity extends FragmentActivity {
                    });
             // Create the AlertDialog object and return it
             return builder.create();
-        }
-    }
-
-    /**
-     * A dummy fragment representing a section of the app, but that simply
-     * displays dummy text.
-     */
-    public static class DummySectionFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        public static final String ARG_SECTION_NUMBER = "section_number";
-
-        public DummySectionFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            // Create a new TextView and set its text to the fragment's section
-            // number argument value.
-            TextView textView = new TextView(getActivity());
-            textView.setGravity(Gravity.CENTER);
-            textView.setText(Integer.toString(getArguments().getInt(
-                    ARG_SECTION_NUMBER)));
-            return textView;
         }
     }
 

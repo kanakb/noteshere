@@ -1,6 +1,7 @@
 package mobisocial.noteshere.fragments;
 
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +13,7 @@ import mobisocial.noteshere.R;
 import mobisocial.noteshere.ViewNoteActivity;
 import mobisocial.noteshere.db.MNote;
 import mobisocial.noteshere.db.NoteManager;
+import mobisocial.noteshere.location.LocationHelper;
 import mobisocial.noteshere.util.SimpleCursorLoader;
 import mobisocial.socialkit.musubi.DbIdentity;
 import mobisocial.socialkit.musubi.Musubi;
@@ -19,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -37,8 +40,10 @@ import android.widget.TextView;
 public class NoteListFragment extends Fragment
     implements LoaderManager.LoaderCallbacks<Cursor>, OnItemClickListener {
     
-    @SuppressWarnings("unused")
+    public static final String ARG_IS_MINE = "is_mine";
+    
     private boolean mIsMine;
+    private int mLoaderId;
     
     private FragmentActivity mActivity;
     
@@ -52,6 +57,9 @@ public class NoteListFragment extends Fragment
     
     private Map<View, Long> mNoteMap;
     
+    private LocationHelper mLocHelper;
+    private Location mLocation;
+    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
@@ -59,21 +67,27 @@ public class NoteListFragment extends Fragment
         
         mNoteManager = new NoteManager(App.getDatabaseSource(mActivity));
         
+        mIsMine = getArguments().getBoolean(ARG_IS_MINE);
+        mLoaderId = mIsMine ? 1 : 0;
+        
         if (Musubi.isMusubiInstalled(mActivity)) {
             mMusubi = Musubi.getInstance(mActivity);
         }
         
         mNoteMap = new HashMap<View, Long>();
         
+        mLocHelper = new LocationHelper(mActivity);
+        
         View v = inflater.inflate(R.layout.note_list, container, false);
         mNoteView = (ListView)v.findViewById(R.id.entry_list);
+        
         mNoteView.setOnItemClickListener(this);
         
-        mActivity.getSupportLoaderManager().initLoader(0, null, this);
+        mActivity.getSupportLoaderManager().initLoader(mLoaderId, null, this);
         mActivity.getContentResolver().registerContentObserver(App.URI_NOTE_AVAILABLE, false, new ContentObserver(new Handler(getActivity().getMainLooper())) {
             @Override
             public void onChange(boolean selfChange) {
-                mActivity.getSupportLoaderManager().restartLoader(0, null, NoteListFragment.this);
+                mActivity.getSupportLoaderManager().restartLoader(mLoaderId, null, NoteListFragment.this);
             }
         });
         
@@ -83,7 +97,14 @@ public class NoteListFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-        mActivity.getSupportLoaderManager().restartLoader(0, null, this);
+        mLocation = mLocHelper.requestLocation(new LocationHelper.LocationResult() {
+            @Override
+            public void onLocation(Location location) {
+                mLocation = location;
+                mActivity.getContentResolver().notifyChange(App.URI_NOTE_AVAILABLE, null);
+            }
+        });
+        mActivity.getSupportLoaderManager().restartLoader(mLoaderId, null, this);
     }
 
     @Override
@@ -96,7 +117,11 @@ public class NoteListFragment extends Fragment
 
     @Override
     public Loader<Cursor> onCreateLoader(int arg0, Bundle arg1) {
-        return new NoteListLoader(mActivity, null);
+        LatLng location = null;
+        if (mLocation != null) {
+            location = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+        }
+        return new NoteListLoader(mActivity, location, mIsMine);
     }
 
     @Override
@@ -133,11 +158,24 @@ public class NoteListFragment extends Fragment
                 String id = note.senderId;
                 DbIdentity ident = mMusubi.userForGlobalId(null, id);
                 if (ident != null) {
-                    // TODO: update the note entry
-                    note.senderName = ident.getName();
+                    // update the note entry if there's a name change
+                    String newName = ident.getName();
+                    if (!note.senderName.equals(newName)) {
+                        note.senderName = newName;
+                        mNoteManager.updateSenderName(note);
+                    }
                 }
             }
-            nameText.setText(note.senderName);
+            String nameFormat = note.senderName;
+            if (mLocation != null) {
+                float[] results = new float[1];
+                Location.distanceBetween(
+                        note.latitude, note.longitude, mLocation.getLatitude(), mLocation.getLongitude(), results);
+                double resultMiles = results[0] * 0.00062137119;
+                DecimalFormat df = new DecimalFormat("#.###");
+                nameFormat += " (" + df.format(resultMiles) + " miles away)";
+            }
+            nameText.setText(nameFormat);
             
             Date date = new Date(note.timestamp);
             DateFormat format = DateFormat.getDateTimeInstance();
@@ -157,18 +195,28 @@ public class NoteListFragment extends Fragment
     
     public static class NoteListLoader extends SimpleCursorLoader {
         private final NoteManager mNoteManager;
-        @SuppressWarnings("unused")
         private final LatLng mLatLng;
+        private final boolean mIsMine;
         
-        public NoteListLoader(Context context, LatLng latLng) {
+        public NoteListLoader(Context context, LatLng latLng, boolean isMine) {
             super(context);
             mNoteManager = new NoteManager(App.getDatabaseSource(context));
-            mLatLng = latLng;
+            if (latLng == null) {
+                mLatLng = new LatLng(0.0, 0.0);
+            } else {
+                mLatLng = latLng;
+            }
+            mIsMine = isMine;
         }
         
         @Override
         public Cursor loadInBackground() {
-            Cursor c = mNoteManager.getMyNotesCursor();
+            Cursor c;
+            if (mIsMine) {
+                c = mNoteManager.getMyNotesCursor();
+            } else {
+                c = mNoteManager.getNearbyNoteCursor(mLatLng.latitude, mLatLng.longitude);
+            }
             c.setNotificationUri(getContext().getContentResolver(), App.URI_NOTE_AVAILABLE);
             return c;
         }

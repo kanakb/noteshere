@@ -40,19 +40,13 @@ public class LocationHelper {
         if (cached == null) {
             cached = mManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
         }
+        mLastLocation = cached;
         if (cb != null) {
             LocationListener locationListener = new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
                     boolean better = isBetterLocation(location, mLastLocation);
-                    if (mHaveGpsLoc) {
-                        mManager.removeUpdates(this);
-                        return;
-                    }
                     if (better) {
-                        if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
-                            mHaveGpsLoc = true;
-                        }
                         // No need to keep trying if this is what we want
                         mManager.removeUpdates(this);
                         mLastLocation = location;
