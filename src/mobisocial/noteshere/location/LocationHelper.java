@@ -19,12 +19,9 @@ public class LocationHelper {
     private final LocationManager mManager;
     private Location mLastLocation;
     
-    private boolean mHaveGpsLoc;
-    
     public LocationHelper(final Activity activity) {
         mManager = (LocationManager)activity.getSystemService(Context.LOCATION_SERVICE);
         mLastLocation = null;
-        mHaveGpsLoc = false;
     }
     
     /**
