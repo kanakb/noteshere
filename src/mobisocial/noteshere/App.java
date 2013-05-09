@@ -13,10 +13,15 @@ public class App extends Application {
     private static final String URI_AUTHORITY = "mobisocial.noteshere.db";
     public static final Uri URI_NOTE_AVAILABLE = Uri.parse(
             URI_SCHEME + URI_AUTHORITY + "/note_available");
+    public static final Uri URI_APP_SETUP = Uri.parse(
+            URI_SCHEME + URI_AUTHORITY + "/app_setup");
+    public static final Uri URI_APP_SETUP_COMPLETE = Uri.parse(
+            URI_SCHEME + URI_AUTHORITY + "/app_setup_complete");
     
     public static final String PREFS_NAME = "noteshere_prefs";
     public static final String PREF_FEED_URI = "feed_uri";
     public static final String PREF_FOLLOWING = "following";
+    public static final String PREF_APP_SETUP_COMPLETE = "app_setup_complete";
     
     private SQLiteOpenHelper mDatabaseSource;
     

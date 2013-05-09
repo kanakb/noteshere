@@ -27,8 +27,8 @@ import android.util.Log;
 public class SocialClient {
     private static final String TAG = "SocialClient";
     
-    private static final String NOTE = "noteshere_note";
-    private static final String HELLO = "noteshere_hello";
+    public static final String NOTE = "noteshere_note";
+    public static final String HELLO = "noteshere_hello";
     
     private static final String TO = "to";
     
@@ -220,6 +220,7 @@ public class SocialClient {
                 note.attachment = Base64.decode(json.getString(MNote.COL_ATTACHMENT), Base64.DEFAULT);
             }
             mNoteManager.insertNote(note);
+            mContext.getContentResolver().notifyChange(App.URI_NOTE_AVAILABLE, null);
             return note;
         } catch (JSONException e) {
             Log.w(TAG, "json error", e);

@@ -6,6 +6,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 
 
 /**
@@ -61,8 +62,12 @@ public class LocationHelper {
                 public void onStatusChanged(String provider, int status,
                         Bundle extras) {}
             };
-            mManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-            mManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            try {
+                mManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                mManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "can't support location registration", e);
+            }
         }
         return cached;
     }

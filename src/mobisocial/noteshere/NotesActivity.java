@@ -11,6 +11,7 @@ import mobisocial.noteshere.R;
 import mobisocial.noteshere.db.FollowingManager;
 import mobisocial.noteshere.db.MFollowing;
 import mobisocial.noteshere.fragments.NoteListFragment;
+import mobisocial.noteshere.services.FirstLoadProcessor;
 import mobisocial.noteshere.social.SocialClient;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbIdentity;
@@ -80,6 +81,20 @@ public class NotesActivity extends FragmentActivity {
 
         if (Musubi.isMusubiInstalled(this)) {
             mMusubi = Musubi.getInstance(this);
+        }
+        
+        FirstLoadProcessor processor = FirstLoadProcessor.newInstance(this);
+        getContentResolver().registerContentObserver(App.URI_APP_SETUP, false, processor);
+        /*getContentResolver().registerContentObserver(App.URI_APP_SETUP_COMPLETE, false, new ContentObserver(new Handler(getMainLooper()) {
+            @Override
+            public void onChange(boolean selfChange) {
+                
+            }
+        });*/
+        boolean setupComplete = getSharedPreferences(App.PREFS_NAME, 0)
+                .getBoolean(App.PREF_APP_SETUP_COMPLETE, false);
+        if (!setupComplete) {
+            getContentResolver().notifyChange(App.URI_APP_SETUP, null);
         }
     }
 
