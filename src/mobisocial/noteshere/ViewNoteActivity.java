@@ -11,8 +11,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import mobisocial.noteshere.db.MNote;
 import mobisocial.noteshere.db.NoteManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +25,8 @@ public class ViewNoteActivity extends FragmentActivity {
     private MNote mNote;
     
     private GoogleMap mMap;
+    
+    private MenuItem mAttachmentItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +46,7 @@ public class ViewNoteActivity extends FragmentActivity {
         
         TextView title = (TextView)findViewById(R.id.viewNoteTitle);
         TextView text = (TextView)findViewById(R.id.viewNoteText);
+        @SuppressWarnings("unused")
         ImageView attachment = (ImageView)findViewById(R.id.attachmentView);
         
         if (mNote.owned) {
@@ -58,10 +60,11 @@ public class ViewNoteActivity extends FragmentActivity {
             text.setVisibility(View.GONE);
         }
         
-        if (mNote.attachment != null) {
-            Bitmap bm = BitmapFactory.decodeByteArray(mNote.attachment, 0, mNote.attachment.length);
+        if (mNote.attachment != null && mAttachmentItem != null) {
+            /*Bitmap bm = BitmapFactory.decodeByteArray(mNote.attachment, 0, mNote.attachment.length);
             attachment.setImageBitmap(bm);
-            attachment.setVisibility(View.VISIBLE);
+            attachment.setVisibility(View.VISIBLE);*/
+            mAttachmentItem.setVisible(true);
         }
         
         setUpMapIfNeeded();
@@ -105,6 +108,10 @@ public class ViewNoteActivity extends FragmentActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.view_note, menu);
+        mAttachmentItem = menu.findItem(R.id.view_attachment);
+        if (mNote != null && mNote.attachment != null) {
+            mAttachmentItem.setVisible(true);
+        }
         return true;
     }
 
@@ -122,6 +129,14 @@ public class ViewNoteActivity extends FragmentActivity {
             finish();
             //NavUtils.navigateUpFromSameTask(this);
             return true;
+        case R.id.view_attachment:
+            if (mNote != null) {
+                Intent viewAttachmentIntent = new Intent(this, ViewAttachmentActivity.class);
+                viewAttachmentIntent.setData(App.getNoteUri(mNote.id));
+                startActivity(viewAttachmentIntent);
+                return true;
+            }
+            return super.onOptionsItemSelected(item);
         }
         return super.onOptionsItemSelected(item);
     }

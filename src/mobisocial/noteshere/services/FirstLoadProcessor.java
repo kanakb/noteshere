@@ -6,10 +6,13 @@ import mobisocial.socialkit.musubi.DbIdentity;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.Musubi;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
 
 public class FirstLoadProcessor extends ContentObserver {
     public static final String TAG = "FirstLoadProcessor";
@@ -30,17 +33,28 @@ public class FirstLoadProcessor extends ContentObserver {
     
     @Override
     public void onChange(boolean selfChange) {
+        Log.d(TAG, "first load check");
         if (!Musubi.isMusubiInstalled(mContext)) {
             mContext.getContentResolver().notifyChange(App.URI_APP_SETUP_COMPLETE, null);
             return;
         }
         Musubi musubi = Musubi.getInstance(mContext);
         
-        DbIdentity me = musubi.userForLocalDevice(null);
+        SharedPreferences p = mContext.getSharedPreferences(App.PREFS_NAME, 0);
+        String feedString = p.getString(App.PREF_FEED_URI, null);
+        if (feedString == null) {
+            mContext.getContentResolver().notifyChange(App.URI_APP_SETUP_COMPLETE, null);
+            return;
+        }
+        
+        Uri feedUri = Uri.parse(feedString);
+        DbIdentity me = musubi.userForLocalDevice(feedUri);
         if (me == null) {
             mContext.getContentResolver().notifyChange(App.URI_APP_SETUP_COMPLETE, null);
             return;
         }
+        
+        Log.d(TAG, "getting hellos");
         
         Cursor c = musubi.queryAppData(
                 new String[] {
@@ -59,8 +73,7 @@ public class FirstLoadProcessor extends ContentObserver {
             if (c != null) c.close();
         }
         
-        mContext.getSharedPreferences(App.PREFS_NAME, 0)
-            .edit().putBoolean(App.PREF_APP_SETUP_COMPLETE, true);
+        p.edit().putBoolean(App.PREF_APP_SETUP_COMPLETE, true).commit();
         mContext.getContentResolver().notifyChange(App.URI_APP_SETUP_COMPLETE, null);
     }
 

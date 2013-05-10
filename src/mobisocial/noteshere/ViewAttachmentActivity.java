@@ -2,6 +2,8 @@ package mobisocial.noteshere;
 
 import java.io.IOException;
 
+import mobisocial.noteshere.db.MNote;
+import mobisocial.noteshere.db.NoteManager;
 import mobisocial.noteshere.util.UriImage;
 import android.net.Uri;
 import android.os.Bundle;
@@ -33,15 +35,22 @@ public class ViewAttachmentActivity extends Activity {
         }
         
         Uri data = getIntent().getData();
-        UriImage image = new UriImage(this, data);
         byte[] raw_img = null;
-        try {
-            raw_img = image.getResizedImageData(NewNoteActivity.MAX_IMAGE_WIDTH, NewNoteActivity.MAX_IMAGE_HEIGHT, NewNoteActivity.MAX_IMAGE_SIZE);
-        } catch (IOException e) {
-            Log.w(TAG, "image conversion failed", e);
-            Toast.makeText(this, "Image load failed!", Toast.LENGTH_SHORT).show();
-            setResult(RESULT_CANCELED);
-            finish();
+        if (data.getAuthority().equals(App.URI_AUTHORITY)) {
+            NoteManager nm = new NoteManager(App.getDatabaseSource(this));
+            Log.d(TAG, "segment: " + data.getLastPathSegment());
+            MNote note = nm.getNote(Long.parseLong(data.getLastPathSegment()));
+            raw_img = note.attachment;
+        } else {
+            UriImage image = new UriImage(this, data);
+            try {
+                raw_img = image.getResizedImageData(NewNoteActivity.MAX_IMAGE_WIDTH, NewNoteActivity.MAX_IMAGE_HEIGHT, NewNoteActivity.MAX_IMAGE_SIZE);
+            } catch (IOException e) {
+                Log.w(TAG, "image conversion failed", e);
+                Toast.makeText(this, "Image load failed!", Toast.LENGTH_SHORT).show();
+                setResult(RESULT_CANCELED);
+                finish();
+            }
         }
         
         if (raw_img == null) {

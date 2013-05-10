@@ -91,11 +91,15 @@ public class NotesActivity extends FragmentActivity {
                 
             }
         });*/
+        runSetup();
+    }
+    
+    private void runSetup() {
         boolean setupComplete = getSharedPreferences(App.PREFS_NAME, 0)
                 .getBoolean(App.PREF_APP_SETUP_COMPLETE, false);
         if (!setupComplete) {
             getContentResolver().notifyChange(App.URI_APP_SETUP, null);
-        }
+        } 
     }
 
     @Override
@@ -235,6 +239,7 @@ public class NotesActivity extends FragmentActivity {
             
             SocialClient sc = new SocialClient(this, mMusubi);
             sc.sendHello(following);
+            runSetup();
         } else if (requestCode == REQUEST_EDIT_FEED && resultCode == RESULT_OK) {
             if (data == null || data.getData() == null) {
                 return;

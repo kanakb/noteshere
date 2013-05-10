@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -156,13 +157,17 @@ public class NoteListFragment extends Fragment
                 note.senderName = "Me";
             } else if (mMusubi != null) {
                 String id = note.senderId;
-                DbIdentity ident = mMusubi.userForGlobalId(null, id);
-                if (ident != null) {
-                    // update the note entry if there's a name change
-                    String newName = ident.getName();
-                    if (!note.senderName.equals(newName)) {
-                        note.senderName = newName;
-                        mNoteManager.updateSenderName(note);
+                String feedString = mActivity.getSharedPreferences(App.PREFS_NAME, 0).getString(App.PREF_FEED_URI, null);
+                if (feedString != null) {
+                    Uri feedUri = Uri.parse(feedString);
+                    DbIdentity ident = mMusubi.userForGlobalId(feedUri, id);
+                    if (ident != null) {
+                        // update the note entry if there's a name change
+                        String newName = ident.getName();
+                        if (!note.senderName.equals(newName)) {
+                            note.senderName = newName;
+                            mNoteManager.updateSenderName(note);
+                        }
                     }
                 }
             }

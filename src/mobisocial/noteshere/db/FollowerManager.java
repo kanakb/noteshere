@@ -82,7 +82,7 @@ public class FollowerManager extends ManagerBase {
         synchronized(sqlUpdateFollower) {
             bindField(sqlUpdateFollower, userId, follower.userId);
             bindField(sqlUpdateFollower, feedUri, follower.feedUri);
-            bindField(sqlUpdateFollower, 4, follower.id);
+            bindField(sqlUpdateFollower, 3, follower.id);
             sqlUpdateFollower.executeUpdateDelete();
         }
     }

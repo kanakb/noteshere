@@ -92,6 +92,7 @@ public class SocialClient {
             Log.w(TAG, "bad feed");
             return;
         }
+        Log.d(TAG, "sending hello: " + json.toString());
         feed.postObj(new MemObj(HELLO, json));
     }
     

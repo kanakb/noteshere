@@ -9,8 +9,8 @@ import android.net.Uri;
 public class App extends Application {
     public static final String TAG = "noteshere";
 
-    private static final String URI_SCHEME = "content://";
-    private static final String URI_AUTHORITY = "mobisocial.noteshere.db";
+    public static final String URI_SCHEME = "content://";
+    public static final String URI_AUTHORITY = "mobisocial.noteshere.db";
     public static final Uri URI_NOTE_AVAILABLE = Uri.parse(
             URI_SCHEME + URI_AUTHORITY + "/note_available");
     public static final Uri URI_APP_SETUP = Uri.parse(

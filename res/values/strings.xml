@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">noteshere</string>
+    <string name="app_name">noteshare</string>
     <string name="title_section2">My Notes</string>
     <string name="title_section1">Nearby</string>
     <string name="hello_world">Hello world!</string>
