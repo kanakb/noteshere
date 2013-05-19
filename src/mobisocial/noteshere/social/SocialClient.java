@@ -176,6 +176,10 @@ public class SocialClient {
             json.put(MNote.COL_NAME, note.senderName);
             json.put(MNote.COL_OWNED, note.owned);
             
+            if (note.description != null) {
+                json.put(MNote.COL_DESCRIPTION, note.description);
+            }
+            
             if (note.text != null) {
                 json.put(MNote.COL_TEXT, note.text);
             }
@@ -214,6 +218,9 @@ public class SocialClient {
             note.senderName = json.getString(MNote.COL_NAME);
             note.owned = false;
             note.followOwned = json.getBoolean(MNote.COL_OWNED);
+            if (json.has(MNote.COL_DESCRIPTION)) {
+                note.description = json.getString(MNote.COL_DESCRIPTION);
+            }
             if (json.has(MNote.COL_TEXT)) {
                 note.text = json.getString(MNote.COL_TEXT);
             }

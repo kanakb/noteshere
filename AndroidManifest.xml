@@ -46,8 +46,8 @@
         </activity>
         <activity
             android:name="mobisocial.noteshere.SettingsActivity"
-            android:label="@string/title_activity_settings"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="@string/title_activity_settings"
             android:parentActivityName="mobisocial.noteshere.NotesActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -55,9 +55,9 @@
         </activity>
         <activity
             android:name="mobisocial.noteshere.NewNoteActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/title_activity_new_note"
             android:parentActivityName="mobisocial.noteshere.NotesActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
             android:permission="mobisocial.musubi.permission.C2D_MESSAGE" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -77,8 +77,8 @@
 
         <activity
             android:name="mobisocial.noteshere.ViewNoteActivity"
-            android:label="@string/title_activity_view_note"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="@string/title_activity_view_note"
             android:parentActivityName="mobisocial.noteshere.NotesActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -93,8 +93,16 @@
 
         <activity
             android:name="mobisocial.noteshere.ViewAttachmentActivity"
-            android:label="@string/title_activity_view_attachment"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="@string/title_activity_view_attachment"
+            android:parentActivityName="mobisocial.noteshere.NewNoteActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="mobisocial.noteshere.NewNoteActivity" />
+        </activity>
+        <activity
+            android:name="mobisocial.noteshere.PlacesActivity"
+            android:label="@string/title_activity_places"
             android:parentActivityName="mobisocial.noteshere.NewNoteActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"

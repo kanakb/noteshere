@@ -15,9 +15,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-//import com.google.android.gms.maps.model.LatLng;
-//import com.google.android.gms.maps.model.MarkerOptions;
 
 import android.location.Location;
 import android.net.Uri;
@@ -41,6 +40,7 @@ public class NewNoteActivity extends FragmentActivity {
     private static final int GALLERY_REQUEST_CODE = 1;
     private static final int CAMERA_REQUEST_CODE = 2;
     private static final int PREVIEW_REQUEST_CODE = 3;
+    private static final int SEARCH_REQUEST_CODE = 4;
     
     public static final int MAX_IMAGE_WIDTH = 1280;
     public static final int MAX_IMAGE_HEIGHT = 720;
@@ -63,6 +63,7 @@ public class NewNoteActivity extends FragmentActivity {
     private MenuItem mAttachmentItem;
     
     private LatLng mLatLng;
+    private String mDescription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +134,8 @@ public class NewNoteActivity extends FragmentActivity {
                     mLatLng = new LatLng(location.getLatitude(), location.getLongitude());
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mLatLng, 14.0f));
                     mMap.clear();
-                    mMap.addMarker(new MarkerOptions().position(mLatLng).title("Location"));
+                    Marker m = mMap.addMarker(new MarkerOptions().position(mLatLng).title("Me"));
+                    m.showInfoWindow();
                     mMovedOnce = true;
                 }
             }
@@ -143,7 +145,8 @@ public class NewNoteActivity extends FragmentActivity {
             public void onMapClick(LatLng latlng) {
                 mMap.clear();
                 mLatLng = latlng;
-                mMap.addMarker(new MarkerOptions().position(latlng).title("Location"));
+                Marker m = mMap.addMarker(new MarkerOptions().position(latlng).title("Me"));
+                m.showInfoWindow();
             }
         });
         mMap.setMyLocationEnabled(true);
@@ -202,6 +205,14 @@ public class NewNoteActivity extends FragmentActivity {
             viewAttachmentIntent.setData(mFileUri);
             startActivityForResult(viewAttachmentIntent, PREVIEW_REQUEST_CODE);
             return true;
+        case R.id.search:
+            Intent placesIntent = new Intent(this, PlacesActivity.class);
+            if (mMovedOnce) {
+                placesIntent.putExtra(PlacesActivity.EXTRA_LATITUDE, mLatLng.latitude);
+                placesIntent.putExtra(PlacesActivity.EXTRA_LONGITUDE, mLatLng.longitude);
+            }
+            startActivityForResult(placesIntent, SEARCH_REQUEST_CODE);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -217,6 +228,21 @@ public class NewNoteActivity extends FragmentActivity {
         }
         if (requestCode == CAMERA_REQUEST_CODE && resultCode != Activity.RESULT_OK) {
             mFileUri = null;
+        }
+        if (requestCode == SEARCH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data.hasExtra(PlacesActivity.EXTRA_LATITUDE) &&
+                    data.hasExtra(PlacesActivity.EXTRA_LONGITUDE) &&
+                    data.hasExtra(PlacesActivity.EXTRA_DESCRIPTION)) {
+                mMovedOnce = true;
+                double latitude = data.getDoubleExtra(PlacesActivity.EXTRA_LATITUDE, -500.0);
+                double longitude = data.getDoubleExtra(PlacesActivity.EXTRA_LONGITUDE, -500.0);
+                mMap.clear();
+                mLatLng = new LatLng(latitude, longitude);
+                mDescription = data.getStringExtra(PlacesActivity.EXTRA_DESCRIPTION);
+                Marker m = mMap.addMarker(new MarkerOptions().position(mLatLng).title(mDescription));
+                m.showInfoWindow();
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mLatLng, 14.0f));
+            }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -250,6 +276,11 @@ public class NewNoteActivity extends FragmentActivity {
             note.owned = true;
             note.senderId = "";
             note.senderName = "";
+            
+            if (mDescription != null) {
+                note.description = mDescription;
+            }
+            
             mNoteManager.insertNote(note);
             
             if (mMusubi != null) {

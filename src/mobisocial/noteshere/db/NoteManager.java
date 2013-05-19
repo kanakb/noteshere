@@ -14,6 +14,7 @@ public class NoteManager extends ManagerBase {
         MNote.COL_SENDER_ID,
         MNote.COL_NAME,
         MNote.COL_OWNED,
+        MNote.COL_DESCRIPTION,
         MNote.COL_TEXT,
         MNote.COL_ATTACHMENT
     };
@@ -25,7 +26,8 @@ public class NoteManager extends ManagerBase {
         MNote.COL_TIMESTAMP,
         MNote.COL_SENDER_ID,
         MNote.COL_NAME,
-        MNote.COL_OWNED
+        MNote.COL_OWNED,
+        MNote.COL_DESCRIPTION
     };
     
     private static final int _id = 0;
@@ -35,8 +37,9 @@ public class NoteManager extends ManagerBase {
     private static final int senderId = 4;
     private static final int name = 5;
     private static final int owned = 6;
-    private static final int text = 7;
-    private static final int attachment = 8;
+    private static final int description = 7;
+    private static final int text = 8;
+    private static final int attachment = 9;
     
     private SQLiteStatement sqlInsertNote;
     private SQLiteStatement sqlUpdateSenderName;
@@ -63,9 +66,10 @@ public class NoteManager extends ManagerBase {
                         .append(MNote.COL_SENDER_ID).append(",")
                         .append(MNote.COL_NAME).append(",")
                         .append(MNote.COL_OWNED).append(",")
+                        .append(MNote.COL_DESCRIPTION).append(",")
                         .append(MNote.COL_TEXT).append(",")
                         .append(MNote.COL_ATTACHMENT)
-                        .append(") VALUES (?,?,?,?,?,?,?,?)");
+                        .append(") VALUES (?,?,?,?,?,?,?,?,?)");
                     sqlInsertNote = db.compileStatement(sql.toString());
                 }
             }
@@ -77,6 +81,7 @@ public class NoteManager extends ManagerBase {
             bindField(sqlInsertNote, senderId, note.senderId);
             bindField(sqlInsertNote, name, note.senderName);
             bindField(sqlInsertNote, owned, note.owned);
+            bindField(sqlInsertNote, description, note.description);
             bindField(sqlInsertNote, text, note.text);
             bindField(sqlInsertNote, attachment, note.attachment);
             note.id = sqlInsertNote.executeInsert();
@@ -199,6 +204,9 @@ public class NoteManager extends ManagerBase {
         note.senderId = c.getString(senderId);
         note.senderName = c.getString(name);
         note.owned = (c.getLong(owned) == 0L) ? false : true;
+        if (!c.isNull(description)) {
+            note.description = c.getString(description);
+        }
         return note;
     }
     

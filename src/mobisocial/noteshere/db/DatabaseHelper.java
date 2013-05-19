@@ -9,7 +9,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String TAG = "DatabaseHelper";
     
     private static final String DB_NAME = "noteshere.db";
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, VERSION);
@@ -25,6 +25,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 MNote.COL_SENDER_ID, "TEXT NOT NULL",
                 MNote.COL_NAME, "TEXT NOT NULL",
                 MNote.COL_OWNED, "INTEGER NOT NULL",
+                MNote.COL_DESCRIPTION, "TEXT",
                 MNote.COL_TEXT, "TEXT",
                 MNote.COL_ATTACHMENT, "BLOB");
         db.execSQL("CREATE INDEX " + MNote.TABLE + "_latlon ON " +
@@ -48,11 +49,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion <= newVersion) {
+        if (oldVersion >= newVersion) {
             return;
         }
         
         if (oldVersion <= 1) {
+            db.execSQL("ALTER TABLE " + MNote.TABLE + " ADD COLUMN " + MNote.COL_DESCRIPTION + " TEXT");
+        }
+        
+        if (oldVersion <= 2) {
             // etc...
         }
         

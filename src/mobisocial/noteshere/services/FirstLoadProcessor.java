@@ -1,5 +1,8 @@
 package mobisocial.noteshere.services;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import mobisocial.noteshere.App;
 import mobisocial.noteshere.social.SocialClient;
 import mobisocial.socialkit.musubi.DbIdentity;
@@ -63,11 +66,17 @@ public class FirstLoadProcessor extends ContentObserver {
                         DbObj.COL_FEED_ID, DbObj.COL_INT_KEY, DbObj.COL_TIMESTAMP, DbObj.COL_PARENT_ID
                 }, DbObj.COL_TYPE + "=?", new String[] { SocialClient.HELLO }, null);
         SocialClient sc = new SocialClient(mContext, musubi);
+        Set<Long> senders = new HashSet<Long>();
         try {
             while (c != null && c.moveToNext()) {
                 DbObj obj = musubi.objForCursor(c);
                 if (obj == null) continue;
-                sc.handleIncomingObj(obj);
+                // process the hello once per sender
+                Long sender = obj.getSenderId();
+                if (!senders.contains(sender)) {
+                    senders.add(sender);
+                    sc.handleIncomingObj(obj);
+                }
             }
         } finally {
             if (c != null) c.close();

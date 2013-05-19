@@ -39,6 +39,11 @@ public class MNote {
     public static final String COL_OWNED = "owned";
     
     /**
+     * Known place description (if available)
+     */
+    public static final String COL_DESCRIPTION = "place_desc";
+    
+    /**
      * Text to show
      */
     public static final String COL_TEXT = "note_text";
@@ -55,6 +60,7 @@ public class MNote {
     public String senderId;
     public String senderName;
     public Boolean owned;
+    public String description;
     public String text;
     public byte[] attachment;
     

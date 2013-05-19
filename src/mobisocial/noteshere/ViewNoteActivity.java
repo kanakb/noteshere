@@ -7,6 +7,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import mobisocial.noteshere.db.MNote;
@@ -90,7 +91,9 @@ public class ViewNoteActivity extends FragmentActivity {
         if (mNote == null) return;
         
         LatLng latlng = new LatLng(mNote.latitude, mNote.longitude);
-        mMap.addMarker(new MarkerOptions().position(latlng).title(mNote.senderName));
+        String description = (mNote.description != null) ? mNote.description : mNote.senderName;
+        Marker m = mMap.addMarker(new MarkerOptions().position(latlng).title(description));
+        m.showInfoWindow();
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng, 14.0f));
         mMap.setMyLocationEnabled(true);
     }

@@ -172,19 +172,20 @@ public class NoteListFragment extends Fragment
                 }
             }
             String nameFormat = note.senderName;
+            nameText.setText(nameFormat);
+            
+            Date date = new Date(note.timestamp);
+            DateFormat format = DateFormat.getDateTimeInstance();
+            String detailsFormat = format.format(date);
             if (mLocation != null) {
                 float[] results = new float[1];
                 Location.distanceBetween(
                         note.latitude, note.longitude, mLocation.getLatitude(), mLocation.getLongitude(), results);
                 double resultMiles = results[0] * 0.00062137119;
                 DecimalFormat df = new DecimalFormat("#.###");
-                nameFormat += " (" + df.format(resultMiles) + " miles away)";
+                detailsFormat += " ¥ " + df.format(resultMiles) + " mi";
             }
-            nameText.setText(nameFormat);
-            
-            Date date = new Date(note.timestamp);
-            DateFormat format = DateFormat.getDateTimeInstance();
-            detailsText.setText(format.format(date));
+            detailsText.setText(detailsFormat);
             
             mNoteMap.put(view, note.id);
         }
