@@ -23,11 +23,12 @@
     <string name="action_settings">Settings</string>
     <string name="note">Note</string>
     <string name="view_attached">View Attached Image</string>
-    <string name="title_activity_view_attachment">View Attachment</string>
+    <string name="title_activity_view_attachment">Attachment</string>
     <string name="preview">Preview</string>
     <string name="title_activity_places">Find a Place</string>
     <string name="find_place">Find a Place…</string>
     <string name="continue_string">Continue</string>
     <string name="clear">Clear</string>
+    <string name="set_location">Set Location</string>
 
 </resources>

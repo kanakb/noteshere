@@ -17,18 +17,25 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -36,8 +43,9 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.Toast;
 
-public class PlacesActivity extends Activity implements OnItemClickListener, OnClickListener {
+public class PlacesActivity extends FragmentActivity implements OnItemClickListener, OnClickListener {
     
     public static final String TAG = "PlacesActivity";
     
@@ -55,17 +63,26 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
     private Button mContinueButton;
     private Button mClearButton;
     private AutoCompleteTextView mTextView;
+    private MenuItem mSetLocationItem;
     
     private Map<String, String> mReferences;
     private String mDescription;
     private LatLng mResult;
     private LatLng mInitial;
+    
+    private boolean mMovedOnce;
+    private boolean mCanSubmit;
+    
+    private GoogleMap mMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
         mReferences = new HashMap<String, String>();
+        
+        mMovedOnce = false;
+        mCanSubmit = false;
         
         Intent intent = getIntent();
         if (intent != null) {
@@ -85,11 +102,46 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
         
         mContinueButton = (Button)findViewById(R.id.continue_button);
         mContinueButton.setOnClickListener(this);
+        mContinueButton.setVisibility(View.GONE);
         
         mClearButton = (Button)findViewById(R.id.clear_button);
         mClearButton.setOnClickListener(this);
+        
         // Show the Up button in the action bar.
         setupActionBar();
+        
+        setUpMapIfNeeded();
+    }
+
+    private void setUpMapIfNeeded() {
+        if (mMap == null) {
+            mMap = ((SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.placeMapFragment)).getMap();
+            if (mMap != null) {
+                setUpMap();
+            }
+        }
+    }
+    
+    private void setUpMap() {
+        boolean hasInitial = mInitial != null;
+        if (hasInitial) {
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mInitial, 14.0f));
+        } else {
+            mMap.setMyLocationEnabled(true);
+            mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    if (mResult == null && !mMovedOnce) {
+                        mInitial = new LatLng(location.getLatitude(), location.getLongitude());
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mInitial, 14.0f));
+                        mMap.clear();
+                        Marker m = mMap.addMarker(new MarkerOptions().position(mInitial).title("Me"));
+                        m.showInfoWindow();
+                        mMovedOnce = true;
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -105,6 +157,8 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.places, menu);
+        mSetLocationItem = menu.findItem(R.id.set_location);
+        mSetLocationItem.setEnabled(true);
         return true;
     }
 
@@ -122,6 +176,18 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
             setResult(RESULT_CANCELED);
             finish();
             //NavUtils.navigateUpFromSameTask(this);
+            return true;
+        case R.id.set_location:
+            if (mCanSubmit) {
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra(EXTRA_LATITUDE, mResult.latitude);
+                resultIntent.putExtra(EXTRA_LONGITUDE, mResult.longitude);
+                resultIntent.putExtra(EXTRA_DESCRIPTION, mDescription);
+                setResult(RESULT_OK, resultIntent);
+                finish();
+            } else {
+                Toast.makeText(this, "Please find a place first!", Toast.LENGTH_SHORT).show();
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -273,6 +339,9 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
         Log.d(TAG, "tapped " + str);
         String reference = mReferences.get(str);
         Log.d(TAG, "reference: " + reference);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        //imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+        imm.hideSoftInputFromWindow(mTextView.getWindowToken(), 0);
         new LocationDetailsTask().execute(reference);
     }
 
@@ -292,6 +361,8 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
             mTextView.clearListSelection();
             mTextView.setText("");
             mContinueButton.setEnabled(false);
+            //mSetLocationItem.setEnabled(false);
+            mCanSubmit = false;
         }
     }
     
@@ -308,8 +379,14 @@ public class PlacesActivity extends Activity implements OnItemClickListener, OnC
         protected void onPostExecute(LatLng result) {
             if (result == null) return;
             mContinueButton.setEnabled(true);
+            //mSetLocationItem.setEnabled(true);
+            mCanSubmit = true;
             Log.d(TAG, "found: " + result.toString());
             mResult = result;
+            mMap.clear();
+            Marker m = mMap.addMarker(new MarkerOptions().position(mResult).title(mDescription));
+            m.showInfoWindow();
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mResult, 14.0f));
         }
     }
 
