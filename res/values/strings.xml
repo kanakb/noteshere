@@ -30,5 +30,7 @@
     <string name="continue_string">Continue</string>
     <string name="clear">Clear</string>
     <string name="set_location">Set Location</string>
+    <string name="title_activity_nearby">Nearby</string>
+    <string name="nearby">Nearby Map</string>
 
 </resources>

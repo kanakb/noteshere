@@ -150,6 +150,10 @@ public class NotesActivity extends FragmentActivity {
             }
             startActivityForResult(intent, request);
             return true;
+        case R.id.nearby_notes:
+            Intent nearbyIntent = new Intent(this, NearbyActivity.class);
+            NotesActivity.this.startActivity(nearbyIntent);
+            return true;
         default:
             return super.onContextItemSelected(item);
         }

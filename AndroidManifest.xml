@@ -108,6 +108,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="mobisocial.noteshere.NewNoteActivity" />
         </activity>
+        <activity
+            android:name="mobisocial.noteshere.NearbyActivity"
+            android:label="@string/title_activity_nearby"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:parentActivityName="mobisocial.noteshere.NotesActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="mobisocial.noteshere.NotesActivity" />
+        </activity>
     </application>
 
 </manifest>
